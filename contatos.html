@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco de Dados de Contatos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+    <style>
+        .contact-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .expired {
+            background-color: #f8d7da;
+        }
+        .notification {
+            background-color: #f8d7da;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            color: #721c24;
+        }
+        .details-row {
+            display: none;
+        }
+        .attention {
+            border-left: 5px solid red;
+        }
+        #photoPreview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 50%;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container my-5">
+    <h1 class="text-center">Banco de Dados de Contatos</h1>
+
+    <div id="notification" class="notification" style="display: none;">
+        <strong>Atenção!</strong> Alguns contatos não foram atualizados nos últimos 15 dias.
+    </div>
+
+    <!-- Filtro de Busca e Botões -->
+    <div class="d-flex justify-content-between mb-4 mt-3">
+        <button class="btn btn-primary" onclick="showForm()">Cadastrar Pessoa</button>
+        <div class="w-50">
+            <input type="text" id="search" class="form-control" placeholder="Buscar por nome ou cidade..." oninput="filterContacts()">
+        </div>
+        <div>
+            <button class="btn btn-secondary me-2" onclick="sortContacts()">Ordenar</button>
+            <button class="btn btn-success" onclick="downloadExcel()">Baixar Excel</button>
+            <button class="btn btn-danger" onclick="clearFilters()">Limpar Filtros</button>
+        </div>
+    </div>
+
+    <div id="formContainer" style="display: none;" class="mb-5">
+        <h2 id="formTitle">Cadastrar Pessoa</h2>
+        <form id="contactForm">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Nome:</label>
+                    <input type="text" class="form-control" id="name" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Telefone:</label>
+                    <input type="tel" class="form-control" id="phone" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="dob" class="form-label">Data de Nascimento:</label>
+                    <input type="date" class="form-control" id="dob">
+                </div>
+                <div class="col-md-6">
+                    <label for="city" class="form-label">Cidade:</label>
+                    <input type="text" class="form-control" id="city" list="citiesList">
+                    <datalist id="citiesList">
+                        <option value="Belo Horizonte, MG"></option>
+                        <option value="Uberlândia, MG"></option>
+                        <option value="Contagem, MG"></option>
+                        <option value="Juiz de Fora, MG"></option>
+                        <option value="Betim, MG"></option>
+                        <option value="Montes Claros, MG"></option>
+                        <option value="Uberaba, MG"></option>
+                        <option value="Governador Valadares, MG"></option>
+                        <option value="Ipatinga, MG"></option>
+                        <option value="Sete Lagoas, MG"></option>
+                    </datalist>
+                </div>
+                <div class="col-md-6">
+                    <label for="group" class="form-label">Grupo:</label>
+                    <input type="text" class="form-control" id="group">
+                </div>
+                <div class="col-md-6">
+                    <label for="priority" class="form-label">Prioridade:</label>
+                    <select class="form-select" id="priority">
+                        <option value="Normal">Normal</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Urgente">Urgente</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="lastContact" class="form-label">Último Contato:</label>
+                    <input type="date" class="form-control" id="lastContact">
+                </div>
+                <div class="col-md-6">
+                    <label for="photo" class="form-label">Foto:</label>
+                    <input type="file" class="form-control" id="photo" accept="image/*" onchange="previewPhoto()">
+                    <img id="photoPreview" alt="Preview" class="mt-2">
+                </div>
+                <div class="col-12">
+                    <label for="notes" class="form-label">Assunto:</label>
+                    <textarea class="form-control" id="notes" rows="3" placeholder="Escreva algo sobre a pessoa..."></textarea>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancelar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela de Contatos -->
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered" id="contactsTable">
+            <thead>
+                <tr>
+                    <th>Foto</th>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Data de Nascimento</th>
+                    <th>Cidade</th>
+                    <th>Grupo</th>
+                    <th>Prioridade</th>
+                    <th>Último Contato</th>
+                    <th>Assunto</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="contactsTableBody">
+                <!-- Os contatos serão adicionados aqui dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let contacts = [];
+    let isEditing = false;
+    let editingIndex = null;
+
+    function showForm() {
+        document.getElementById('formContainer').style.display = 'block';
+        document.getElementById('formTitle').textContent = isEditing ? 'Editar Pessoa' : 'Cadastrar Pessoa';
+    }
+
+    function hideForm() {
+        document.getElementById('formContainer').style.display = 'none';
+        document.getElementById('contactForm').reset();
+        isEditing = false;
+        editingIndex = null;
+        document.getElementById('photoPreview').style.display = 'none';
+    }
+
+    function previewPhoto() {
+        const photoInput = document.getElementById('photo');
+        const photoPreview = document.getElementById('photoPreview');
+        const file = photoInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                photoPreview.src = reader.result;
+                photoPreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            photoPreview.style.display = 'none';
+        }
+    }
+
+    function addContact(event) {
+        event.preventDefault();
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const dob = document.getElementById('dob').value;
+        const city = document.getElementById('city').value;
+        const group = document.getElementById('group').value;
+        const priority = document.getElementById('priority').value;
+        const lastContact = document.getElementById('lastContact').value;
+        const notes = document.getElementById('notes').value;
+        const photo = document.getElementById('photoPreview').src;
+
+        if (isEditing) {
+            contacts[editingIndex] = { name, phone, dob, city, group, priority, lastContact, notes, photo };
+        } else {
+            contacts.push({ name, phone, dob, city, group, priority, lastContact, notes, photo });
+        }
+        
+        renderTable();
+        hideForm();
+    }
+
+    function renderTable() {
+        const tableBody = document.getElementById('contactsTableBody');
+        tableBody.innerHTML = '';
+        contacts.forEach((contact, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><img src="${contact.photo}" class="contact-photo" alt="Foto"></td>
+                <td>${contact.name}</td>
+                <td>${contact.phone}</td>
+                <td>${contact.dob || ''}</td>
+                <td>${contact.city || ''}</td>
+                <td>${contact.group || ''}</td>
+                <td>${contact.priority}</td>
+                <td>${contact.lastContact || ''}</td>
+                <td>${contact.notes || ''}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick="editContact(${index})">Editar</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteContact(${index})">Excluir</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function editContact(index) {
+        const contact = contacts[index];
+        document.getElementById('name').value = contact.name;
+        document.getElementById('phone').value = contact.phone;
+        document.getElementById('dob').value = contact.dob;
+        document.getElementById('city').value = contact.city;
+        document.getElementById('group').value = contact.group;
+        document.getElementById('priority').value = contact.priority;
+        document.getElementById('lastContact').value = contact.lastContact;
+        document.getElementById('notes').value = contact.notes;
+        document.getElementById('photoPreview').src = contact.photo;
+        document.getElementById('photoPreview').style.display = 'block';
+
+        isEditing = true;
+        editingIndex = index;
+        showForm();
+    }
+
+    function deleteContact(index) {
+        contacts.splice(index, 1);
+        renderTable();
+    }
+</script>
+</body>
+</html>
