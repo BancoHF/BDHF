@@ -1,90 +1,96 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Pessoas</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>Banco de Dados de Contatos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
     <style>
         .contact-photo {
             width: 50px;
             height: 50px;
-            object-fit: cover;
             border-radius: 50%;
         }
-        #formContainer {
+        .details-row {
             display: none;
         }
         #photoPreview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 50%;
             display: none;
-            max-width: 100px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-top: 10px;
+        }
+        .highlight {
+            background-color: #ffcccc;
         }
     </style>
 </head>
 <body>
-    <div class="container my-5">
-        <h1 class="text-center">Cadastro de Pessoas</h1>
-        <button class="btn btn-primary my-3" id="addContactButton">Cadastrar Pessoa</button>
+<div class="container my-5">
+    <h1 class="text-center">Banco de Dados de Contatos</h1>
 
-        <!-- Formulário de Cadastro -->
-        <div id="formContainer" class="card p-3">
-            <h2>Cadastro</h2>
-            <form id="contactForm">
-                <div class="mb-3">
-                    <label for="name" class="form-label">Nome*</label>
-                    <input type="text" class="form-control" id="name" required>
+    <div class="d-flex justify-content-between mb-4 mt-3">
+        <button class="btn btn-primary" onclick="showForm()">Cadastrar Pessoa</button>
+        <div class="w-50">
+            <input type="text" id="search" class="form-control" placeholder="Buscar por nome, grupo, cidade ou telefone..." oninput="filterContacts()">
+        </div>
+        <div>
+            <button class="btn btn-success" onclick="downloadExcel()">Baixar Excel</button>
+            <button class="btn btn-secondary" onclick="toggleSort()">Ordenar A-Z</button>
+        </div>
+    </div>
+
+    <div id="formContainer" style="display: none;" class="mb-5">
+        <h2 id="formTitle">Cadastrar Pessoa</h2>
+        <form id="contactForm" aria-labelledby="formTitle">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Nome:</label>
+                    <input type="text" class="form-control" id="name" required aria-required="true">
                 </div>
-                <div class="mb-3">
-                    <label for="phone" class="form-label">Telefone*</label>
-                    <input type="text" class="form-control" id="phone" required>
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Telefone:</label>
+                    <input type="tel" class="form-control" id="phone" required aria-required="true" pattern="^\+?[1-9]\d{1,14}$" title="Digite um telefone válido no formato internacional ou nacional">
                 </div>
-                <div class="mb-3">
-                    <label for="dob" class="form-label">Data de Nascimento</label>
+                <div class="col-md-6">
+                    <label for="dob" class="form-label">Data de Nascimento:</label>
                     <input type="date" class="form-control" id="dob">
                 </div>
-                <div class="mb-3">
-                    <label for="city" class="form-label">Cidade</label>
+                <div class="col-md-6">
+                    <label for="city" class="form-label">Cidade:</label>
                     <input type="text" class="form-control" id="city">
                 </div>
-                <div class="mb-3">
-                    <label for="group" class="form-label">Grupo</label>
-                    <select class="form-control" id="group">
-                        <option>Amigos</option>
-                        <option>Família</option>
-                        <option>Trabalho</option>
+                <div class="col-md-6">
+                    <label for="priority" class="form-label">Prioridade:</label>
+                    <select class="form-select" id="priority">
+                        <option value="Leve">Leve</option>
+                        <option value="Moderada">Moderada</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Urgente">Urgente</option>
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label for="priority" class="form-label">Prioridade</label>
-                    <select class="form-control" id="priority">
-                        <option>Baixa</option>
-                        <option>Média</option>
-                        <option>Alta</option>
-                    </select>
+                <div class="col-md-6">
+                    <label for="photo" class="form-label">Foto:</label>
+                    <input type="file" class="form-control" id="photo" accept="image/*" onchange="previewPhoto()">
+                    <img id="photoPreview" alt="Preview" class="mt-2">
                 </div>
-                <div class="mb-3">
-                    <label for="lastContact" class="form-label">Último Contato</label>
-                    <input type="date" class="form-control" id="lastContact">
-                </div>
-                <div class="mb-3">
-                    <label for="notes" class="form-label">Anotações</label>
+                <div class="col-12">
+                    <label for="notes" class="form-label">Assunto:</label>
                     <textarea class="form-control" id="notes" rows="3"></textarea>
                 </div>
-                <div class="mb-3">
-                    <label for="photo" class="form-label">Foto</label>
-                    <input type="file" class="form-control" id="photo" accept="image/*" onchange="previewPhoto()">
-                    <img id="photoPreview" alt="Pré-visualização da Foto">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancelar</button>
                 </div>
-                <button type="submit" class="btn btn-success">Salvar</button>
-                <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancelar</button>
-            </form>
-        </div>
+            </div>
+        </form>
+    </div>
 
-        <!-- Tabela de Contatos -->
-        <table class="table table-striped mt-4">
+    <div id="contactTable">
+        <h2>Lista de Contatos</h2>
+        <table class="table table-striped">
             <thead>
                 <tr>
                     <th>Foto</th>
@@ -93,110 +99,108 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody id="basicContactTableBody">
-                <!-- Contatos aparecerão aqui -->
-            </tbody>
+            <tbody id="contactTableBody"></tbody>
         </table>
     </div>
+</div>
 
-    <script>
-        // Função para mostrar o formulário de cadastro
-        function showForm() {
-            const formContainer = document.getElementById('formContainer');
-            const contactForm = document.getElementById('contactForm');
+<script>
+    const apiBase = '/api/contacts'; // Base da API
 
-            // Limpa os campos do formulário
-            contactForm.reset();
+    const form = document.getElementById('contactForm');
+    const contactTableBody = document.getElementById('contactTableBody');
+    let editContactId = null;
+    let sortAscending = true;
 
-            // Esconde o preview da foto
-            document.getElementById('photoPreview').style.display = 'none';
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            // Exibe o formulário de cadastro
-            formContainer.style.display = 'block';
-        }
+        const contact = {
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            dob: document.getElementById('dob').value,
+            city: document.getElementById('city').value,
+            priority: document.getElementById('priority').value,
+            notes: document.getElementById('notes').value,
+        };
 
-        // Função para esconder o formulário de cadastro
-        function hideForm() {
-            const formContainer = document.getElementById('formContainer');
-            formContainer.style.display = 'none';
-        }
-
-        // Adiciona evento ao botão de cadastrar
-        document.getElementById('addContactButton').addEventListener('click', showForm);
-
-        // Função para visualizar a foto selecionada
-        function previewPhoto() {
-            const file = document.getElementById('photo').files[0];
-            const photoPreview = document.getElementById('photoPreview');
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    photoPreview.src = e.target.result;
-                    photoPreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                photoPreview.style.display = 'none';
-            }
-        }
-
-        // Inicializa o evento de envio do formulário
-        document.getElementById('contactForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            const contact = {
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                dob: document.getElementById('dob').value,
-                city: document.getElementById('city').value,
-                group: document.getElementById('group').value,
-                priority: document.getElementById('priority').value,
-                lastContact: document.getElementById('lastContact').value,
-                notes: document.getElementById('notes').value,
-                photo: document.getElementById('photoPreview').src || '',
-            };
-
-            // Valida campos obrigatórios
-            if (!contact.name || !contact.phone) {
-                alert('Por favor, preencha os campos obrigatórios.');
-                return;
-            }
-
-            // Adiciona ao armazenamento local e atualiza lista
-            const contacts = JSON.parse(localStorage.getItem('contacts')) || [];
-            contacts.push(contact);
-            localStorage.setItem('contacts', JSON.stringify(contacts));
-
-            alert('Pessoa cadastrada com sucesso!');
-            hideForm();
-            renderContacts(); // Atualiza lista
-        });
-
-        // Função para renderizar contatos na tabela
-        function renderContacts() {
-            const basicTableBody = document.getElementById('basicContactTableBody');
-            const contacts = JSON.parse(localStorage.getItem('contacts')) || [];
-
-            basicTableBody.innerHTML = ''; // Limpa tabela existente
-
-            contacts.forEach((contact, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><img src="${contact.photo}" alt="Foto" class="contact-photo"></td>
-                    <td>${contact.name}</td>
-                    <td>${contact.city}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm" onclick="editContact(${index})">Editar</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteContact(${index})">Excluir</button>
-                    </td>
-                `;
-                basicTableBody.appendChild(tr);
+        if (editContactId) {
+            await fetch(`${apiBase}/${editContactId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(contact),
+            });
+            editContactId = null;
+        } else {
+            await fetch(apiBase, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(contact),
             });
         }
 
-        // Chamada inicial para renderizar os contatos salvos
-        renderContacts();
-    </script>
+        hideForm();
+        loadContacts();
+    });
+
+    async function loadContacts() {
+        const response = await fetch(apiBase);
+        const contacts = await response.json();
+        renderContacts(contacts);
+    }
+
+    async function deleteContact(id) {
+        if (confirm('Tem certeza que deseja excluir este contato?')) {
+            await fetch(`${apiBase}/${id}`, { method: 'DELETE' });
+            loadContacts();
+        }
+    }
+
+    function renderContacts(contacts) {
+        contactTableBody.innerHTML = '';
+        contacts.sort((a, b) => sortAscending
+            ? a.name.localeCompare(b.name)
+            : b.name.localeCompare(a.name)
+        ).forEach(contact => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><img src="${contact.photo || ''}" alt="Foto" class="contact-photo"></td>
+                <td>${contact.name}</td>
+                <td>${contact.city}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editContact('${contact.id}')">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteContact('${contact.id}')">Excluir</button>
+                </td>
+            `;
+            contactTableBody.appendChild(row);
+        });
+    }
+
+    async function editContact(id) {
+        const response = await fetch(`${apiBase}/${id}`);
+        const contact = await response.json();
+
+        document.getElementById('name').value = contact.name;
+        document.getElementById('phone').value = contact.phone;
+        document.getElementById('dob').value = contact.dob;
+        document.getElementById('city').value = contact.city;
+        document.getElementById('priority').value = contact.priority;
+        document.getElementById('notes').value = contact.notes;
+
+        editContactId = id;
+        showForm();
+    }
+
+    function showForm() {
+        form.reset();
+        document.getElementById('formContainer').style.display = 'block';
+    }
+
+    function hideForm() {
+        document.getElementById('formContainer').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadContacts);
+</script>
 </body>
 </html>
