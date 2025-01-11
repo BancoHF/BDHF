@@ -38,7 +38,7 @@
         </div>
         <div>
             <button class="btn btn-success" onclick="downloadExcel()">Baixar Excel</button>
-            <button class="btn btn-secondary" onclick="toggleSort()">Ordenar A-Z</button>
+            <button class="btn btn-secondary" onclick="toggleSort()" id="sortButton">Ordenar A-Z</button>
         </div>
     </div>
 
@@ -72,6 +72,10 @@
                     </select>
                 </div>
                 <div class="col-md-6">
+                    <label for="lastContact" class="form-label">Data da Última Conversa:</label>
+                    <input type="date" class="form-control" id="lastContact">
+                </div>
+                <div class="col-md-6">
                     <label for="photo" class="form-label">Foto:</label>
                     <input type="file" class="form-control" id="photo" accept="image/*" onchange="previewPhoto()">
                     <img id="photoPreview" alt="Preview" class="mt-2">
@@ -96,6 +100,7 @@
                     <th>Foto</th>
                     <th>Nome</th>
                     <th>Cidade</th>
+                    <th>Última Conversa</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -109,6 +114,7 @@
 
     const form = document.getElementById('contactForm');
     const contactTableBody = document.getElementById('contactTableBody');
+    const sortButton = document.getElementById('sortButton');
     let editContactId = null;
     let sortAscending = true;
 
@@ -121,6 +127,7 @@
             dob: document.getElementById('dob').value,
             city: document.getElementById('city').value,
             priority: document.getElementById('priority').value,
+            lastContact: document.getElementById('lastContact').value,
             notes: document.getElementById('notes').value,
         };
 
@@ -164,9 +171,10 @@
         ).forEach(contact => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><img src="${contact.photo || ''}" alt="Foto" class="contact-photo"></td>
+                <td><img src="${contact.photo || 'https://via.placeholder.com/50'}" alt="Foto" class="contact-photo"></td>
                 <td>${contact.name}</td>
                 <td>${contact.city}</td>
+                <td>${contact.lastContact || 'Não informado'}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="editContact('${contact.id}')">Editar</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteContact('${contact.id}')">Excluir</button>
@@ -185,6 +193,7 @@
         document.getElementById('dob').value = contact.dob;
         document.getElementById('city').value = contact.city;
         document.getElementById('priority').value = contact.priority;
+        document.getElementById('lastContact').value = contact.lastContact;
         document.getElementById('notes').value = contact.notes;
 
         editContactId = id;
@@ -198,9 +207,33 @@
 
     function hideForm() {
         document.getElementById('formContainer').style.display = 'none';
+        form.reset();
+    }
+
+    function toggleSort() {
+        sortAscending = !sortAscending;
+        sortButton.textContent = sortAscending ? 'Ordenar A-Z' : 'Ordenar Z-A';
+        loadContacts();
+    }
+
+    function previewPhoto() {
+        const photoInput = document.getElementById('photo');
+        const photoPreview = document.getElementById('photoPreview');
+        if (photoInput.files && photoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                photoPreview.src = e.target.result;
+                photoPreview.style.display = 'block';
+            };
+            reader.readAsDataURL(photoInput.files[0]);
+        } else {
+            photoPreview.style.display = 'none';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', loadContacts);
 </script>
 </body>
 </html>
+
+
