@@ -296,51 +296,41 @@
 </div>
 
 <script>
-    const apiBase = '/api/contacts';
     const form = document.getElementById('contactForm');
     const contactTableBody = document.getElementById('contactTableBody');
     const sortButton = document.getElementById('sortButton');
+    let contacts = [];
     let editContactId = null;
     let sortAscending = true;
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', (e) => {
         e.preventDefault();
+
         const contact = {
+            id: editContactId || Date.now(),
             name: document.getElementById('name').value,
             phone: document.getElementById('phone').value,
             dob: document.getElementById('dob').value,
             city: document.getElementById('city').value,
             priority: document.getElementById('priority').value,
             lastContact: document.getElementById('lastContact').value,
+            photo: document.getElementById('photoPreview').src || '',
             notes: document.getElementById('notes').value,
         };
 
         if (editContactId) {
-            await fetch(`${apiBase}/${editContactId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(contact),
-            });
+            const index = contacts.findIndex(c => c.id === editContactId);
+            contacts[index] = contact;
             editContactId = null;
         } else {
-            await fetch(apiBase, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(contact),
-            });
+            contacts.push(contact);
         }
 
         hideForm();
-        loadContacts();
+        renderContacts();
     });
 
-    async function loadContacts() {
-        const response = await fetch(apiBase);
-        const contacts = await response.json();
-        renderContacts(contacts);
-    }
-
-    function renderContacts(contacts) {
+    function renderContacts() {
         contactTableBody.innerHTML = '';
         contacts.sort((a, b) => sortAscending
             ? a.name.localeCompare(b.name)
@@ -353,12 +343,33 @@
                 <td>${contact.city}</td>
                 <td>${contact.lastContact || 'Não informado'}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="editContact('${contact.id}')">Editar</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteContact('${contact.id}')">Excluir</button>
+                    <button class="btn btn-sm btn-primary" onclick="editContact(${contact.id})">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteContact(${contact.id})">Excluir</button>
                 </td>
             `;
             contactTableBody.appendChild(row);
         });
+    }
+
+    function editContact(id) {
+        const contact = contacts.find(c => c.id === id);
+        document.getElementById('name').value = contact.name;
+        document.getElementById('phone').value = contact.phone;
+        document.getElementById('dob').value = contact.dob;
+        document.getElementById('city').value = contact.city;
+        document.getElementById('priority').value = contact.priority;
+        document.getElementById('lastContact').value = contact.lastContact;
+        document.getElementById('notes').value = contact.notes;
+        document.getElementById('photoPreview').src = contact.photo || '';
+        document.getElementById('photoPreview').style.display = contact.photo ? 'block' : 'none';
+
+        editContactId = id;
+        showForm();
+    }
+
+    function deleteContact(id) {
+        contacts = contacts.filter(c => c.id !== id);
+        renderContacts();
     }
 
     function showForm() {
@@ -369,13 +380,13 @@
     function hideForm() {
         document.getElementById('formContainer').style.display = 'none';
         form.reset();
+        document.getElementById('photoPreview').style.display = 'none';
     }
 
     function navigateTo(page) {
         const pages = document.querySelectorAll('.page');
         pages.forEach(p => p.style.display = 'none');
         document.getElementById(page).style.display = 'block';
-        if (page === 'inicio') loadContacts();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
